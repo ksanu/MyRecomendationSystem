@@ -17,32 +17,55 @@ DFUserRatedMovies=pd.read_csv(datasetFilesPath+userRatedMoviesFileName, header=0
 DFMovieGenresFileName="movie_genres.dat"
 DFMovieGenres=pd.read_csv(datasetFilesPath+DFMovieGenresFileName, header=0, delimiter="\t")
 
+DFMovieActorsFileName="movie_actors.dat"
+DFMovieActors=pd.read_csv(datasetFilesPath+DFMovieActorsFileName, header=0, delimiter="\t", encoding='iso-8859-1', usecols=['movieID', 'actorID', 'ranking'], nrows=100)
+
 #przygotowanie wczytanych danych
     #movie genres:
+
 DFMovieGenres['dummyColumn']=1
 DFMovieGenresPivoted=DFMovieGenres.pivot_table(index="movieID",columns="genre",values="dummyColumn")
 DFMovieGenresPivoted['movieID']=DFMovieGenresPivoted.index
 DFUserRatedMoviesWithMovieGenres=pd.merge(DFUserRatedMovies,DFMovieGenresPivoted,on='movieID')
-DFUserRatedMoviesWithMovieGenres=DFUserRatedMoviesWithMovieGenres.fillna(value=0)
 
-DFUserRatedMoviesWithMovieGenres["rating"]=DFUserRatedMoviesWithMovieGenres["rating"]>DFUserRatedMoviesWithMovieGenres["rating"].mean()
-DFUserRatedMoviesWithMovieGenres_y=DFUserRatedMoviesWithMovieGenres["rating"]
-yTemp=DFUserRatedMoviesWithMovieGenres_y.values
+    #actors:
+DFMovieActorsPivoted = DFMovieActors.pivot_table(index="movieID", columns="actorID", values="ranking")
+DFMovieActorsPivoted['movieID']=DFMovieActorsPivoted.index
+#DFUserRatedMoviesWithActors=pd.merge(DFUserRatedMovies, DFMovieActorsPivoted, on='movieID')
+#DFUserRatedMoviesWithActors=DFUserRatedMoviesWithActors.fillna(value=0)
+#DFUserRatedMoviesWithActors_X=DFUserRatedMoviesWithActors.drop("rating",1)
+#DFUserRatedMoviesWithActors_X=DFUserRatedMoviesWithActors_X.drop("userID",1)
+#DFUserRatedMoviesWithActors_X=DFUserRatedMoviesWithActors_X.drop("movieID",1)
+
+#XMovieActors=csr_matrix(DFUserRatedMoviesWithActors_X.values)
+
+DFUserRatedMoviesWithMovieGenresActors=pd.merge(DFUserRatedMoviesWithMovieGenres, DFMovieActorsPivoted, on='movieID')
+DFUserRatedMoviesWithMovieGenresActors=DFUserRatedMoviesWithMovieGenresActors.fillna(value=0)
+
+#DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors.drop("rating",1)
+#DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors_X.drop("userID",1)
+#DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors_X.drop("movieID",1)
+
+
+DFUserRatedMoviesWithMovieGenresActors["rating"]=DFUserRatedMoviesWithMovieGenresActors["rating"]>DFUserRatedMoviesWithMovieGenresActors["rating"].mean()
+DFUserRatedMoviesWithMovieGenresActors_y=DFUserRatedMoviesWithMovieGenresActors["rating"]
+yTemp=DFUserRatedMoviesWithMovieGenresActors_y.values
 #macierz y
 y=np.where(yTemp,1,-1)
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres.drop("rating",1)
+DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors.drop("rating",1)
 
-XUserID=DFUserRatedMoviesWithMovieGenres_X["userID"].values
-XMovieID=DFUserRatedMoviesWithMovieGenres_X["movieID"].values
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres_X.drop("userID",1)
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres_X.drop("movieID",1)
+XUserID=DFUserRatedMoviesWithMovieGenresActors_X["userID"].values
+XMovieID=DFUserRatedMoviesWithMovieGenresActors_X["movieID"].values
+DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors_X.drop("userID",1)
+DFUserRatedMoviesWithMovieGenresActors_X=DFUserRatedMoviesWithMovieGenresActors_X.drop("movieID",1)
 
-XMovieGenres=csr_matrix(DFUserRatedMoviesWithMovieGenres_X.values)
+XMovieGenresAndActors=csr_matrix(DFUserRatedMoviesWithMovieGenresActors_X.values)
+
 OHE=OneHotEncoder()
 XUserIDOHEncoded=OHE.fit_transform(XUserID.reshape(-1, 1))
 XMovieIDOHEncoded=OHE.fit_transform(XMovieID.reshape(-1, 1))
 #macierz X
-X=hstack([XUserIDOHEncoded,XMovieIDOHEncoded,XMovieGenres])
+X=hstack([XUserIDOHEncoded,XMovieIDOHEncoded,XMovieGenresAndActors])
 
 #podział na zbiór treningowy i testowy
 X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2)
@@ -72,7 +95,6 @@ def xgbClassification(X_train, X_test, y_train, y_test):
 
     # make predictions for test data
     y_pred = xgb_model.predict(X_test)
-    #predictions = [round(value) for value in y_pred]
 
     fpr, tpr, _ = roc_curve(y_test, y_pred)
     roc_auc = auc(fpr, tpr)

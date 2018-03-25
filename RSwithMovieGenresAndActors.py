@@ -12,13 +12,13 @@ datasetFilesPath="C:\\hetrec2011-movielens-2k-v2\\"
 
 #wczytywanie danych:
 userRatedMoviesFileName="user_ratedmovies.dat"
-DFUserRatedMovies=pd.read_csv(datasetFilesPath+userRatedMoviesFileName, header=0, delimiter="\t",usecols=['userID','movieID','rating'],nrows=10000)
+DFUserRatedMovies=pd.read_csv(datasetFilesPath+userRatedMoviesFileName, header=0, delimiter="\t",usecols=['userID','movieID','rating'],nrows=100000)
 
 DFMovieGenresFileName="movie_genres.dat"
 DFMovieGenres=pd.read_csv(datasetFilesPath+DFMovieGenresFileName, header=0, delimiter="\t")
 
 DFMovieActorsFileName="movie_actors.dat"
-DFMovieActors=pd.read_csv(datasetFilesPath+DFMovieActorsFileName, header=0, delimiter="\t", encoding='iso-8859-1', usecols=['movieID', 'actorID', 'ranking'], nrows=100)
+DFMovieActors=pd.read_csv(datasetFilesPath+DFMovieActorsFileName, header=0, delimiter="\t", encoding='iso-8859-1', usecols=['movieID', 'actorID', 'ranking'], nrows=10000)
 
 #przygotowanie wczytanych danych
     #movie genres:

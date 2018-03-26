@@ -1,99 +1,69 @@
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_curve, auc
 from sklearn.linear_model import LogisticRegression
+from DataPreparators.DPwithMovieGenres import DPwithMovieGenres
+from DataPreparators.DPwithMovieGenresAndCountries import DPwithMovieGenresAndCountries
+from DataPreparators.DPwithMovieGenresCountriesAndDirectors import DPwithMovieGenresCountriesAndDirectors
 import xgboost as xgb
-from sklearn.preprocessing import OneHotEncoder
-from scipy.sparse import csr_matrix, hstack
-
-
-datasetFilesPath="C:\\hetrec2011-movielens-2k-v2\\"
-
-#wczytywanie danych:
-userRatedMoviesFileName="user_ratedmovies.dat"
-DFUserRatedMovies=pd.read_csv(datasetFilesPath+userRatedMoviesFileName, header=0, delimiter="\t",usecols=['userID','movieID','rating'],nrows=10000)
-
-DFMovieGenresFileName="movie_genres.dat"
-DFMovieGenres=pd.read_csv(datasetFilesPath+DFMovieGenresFileName, header=0, delimiter="\t")
-
-#przygotowanie wczytanych danych
-    #movie genres:
-DFMovieGenres['dummyColumn']=1
-DFMovieGenresPivoted=DFMovieGenres.pivot_table(index="movieID",columns="genre",values="dummyColumn")
-DFMovieGenresPivoted['movieID']=DFMovieGenresPivoted.index
-DFUserRatedMoviesWithMovieGenres=pd.merge(DFUserRatedMovies,DFMovieGenresPivoted,on='movieID')
-DFUserRatedMoviesWithMovieGenres=DFUserRatedMoviesWithMovieGenres.fillna(value=0)
-
-DFUserRatedMoviesWithMovieGenres["rating"]=DFUserRatedMoviesWithMovieGenres["rating"]>DFUserRatedMoviesWithMovieGenres["rating"].mean()
-DFUserRatedMoviesWithMovieGenres_y=DFUserRatedMoviesWithMovieGenres["rating"]
-yTemp=DFUserRatedMoviesWithMovieGenres_y.values
-#macierz y
-y=np.where(yTemp,1,-1)
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres.drop("rating",1)
-
-XUserID=DFUserRatedMoviesWithMovieGenres_X["userID"].values
-XMovieID=DFUserRatedMoviesWithMovieGenres_X["movieID"].values
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres_X.drop("userID",1)
-DFUserRatedMoviesWithMovieGenres_X=DFUserRatedMoviesWithMovieGenres_X.drop("movieID",1)
-
-XMovieGenres=csr_matrix(DFUserRatedMoviesWithMovieGenres_X.values)
-OHE=OneHotEncoder()
-XUserIDOHEncoded=OHE.fit_transform(XUserID.reshape(-1, 1))
-XMovieIDOHEncoded=OHE.fit_transform(XMovieID.reshape(-1, 1))
-#macierz X
-X=hstack([XUserIDOHEncoded,XMovieIDOHEncoded,XMovieGenres])
-
-#podział na zbiór treningowy i testowy
-X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2)
-
-
-def xgbClassification(X_train, X_test, y_train, y_test):
-    xgTrain = xgb.DMatrix(X_train, label=y_train)
-    xgTest = xgb.DMatrix(X_test, label=y_test)
-
-    #num_rounds = 10
-
-    #params = {}
-    #params["max_depth"] = 1000
-    #params["max_delta_step"] = 20000
-    # params["max_delta_step"]=200
-    # params["gamma"]=0.001
-    # params["eta"]=0.1
-
-    #!Trenowanie modelu:
-    xgb_model = xgb.XGBClassifier()
-    #recSys = xgb.train(params, xgTrain, num_rounds)
-    xgb_model.fit(X_train, y_train)
-
-    #ypred = recSys.predict(xgTest)
-    #threshold = 0.5
-    #y_pred = np.where(ypred > threshold, 1, 0)
-
-    # make predictions for test data
-    y_pred = xgb_model.predict(X_test)
-    #predictions = [round(value) for value in y_pred]
-
-    fpr, tpr, _ = roc_curve(y_test, y_pred)
-    roc_auc = auc(fpr, tpr)
-    print('GB AUC: {}'.format(roc_auc))
-
-
-def logisticRegressionClassification(X_train,X_test,y_train,y_test):
-    LRC = LogisticRegression()
-    LRC.fit(X_train, y_train)
-    y_probs = LRC.predict_proba(X_test)
-    y_pred = y_probs[:, 1]
-    fpr, tpr, _ = roc_curve(y_test, y_pred)
-    roc_auc = auc(fpr, tpr)
-    print('LR AUC: {}'.format(roc_auc))
-
-
-xgbClassification(X_train,X_test,y_train,y_test)
-
-logisticRegressionClassification(X_train,X_test,y_train,y_test)
+from ParamsTunerWithGridAndRandomSearch import ParamsTunerWithGridAndRandomSearch
+import xgboost as xgb
 
 
 
+mNrows = 10000
+DP1 = DPwithMovieGenres(nrows=mNrows)
+DP2 = DPwithMovieGenresAndCountries(nrows=mNrows)
+DP3 = DPwithMovieGenresCountriesAndDirectors(nrows=mNrows)
+mDataPreparators = [DP1, DP2, DP3]
+
+myLRC = LogisticRegression()
+gridSearchParametersLRC={
+    'penalty': ['l2'],
+    'C': [0.001,0.01,1,10,100],
+    'fit_intercept': [True, False],
+    'solver' : ['newton-cg', 'lbfgs', 'liblinear', 'sag'],
+    'verbose': [0, 1, 2, 32]
+}
+
+randomSearchParametersLRC={
+    'penalty': ['l2'],
+    'C': [0.0001,0.001,0.01,0.1,1,10,100,1000],
+    'fit_intercept': [True, False],
+    'solver' : ['newton-cg', 'lbfgs', 'liblinear', 'sag'],
+    'verbose': [0.001,0.01,1,10,100, 1000]
+}
 
 
+#myTuner = ParamsTunerWithGridAndRandomSearch(myClassifier=myLRC, data_preparators=mDataPreparators,
+#                                             grid_params=gridSearchParametersLRC, rand_params=randomSearchParametersLRC)
+#myTuner.startTuning()
+
+myXGBC = xgb.XGBClassifier()
+gridSearchParametersXGB={
+ 'base_score': [0.2, 0.5, 0.7],
+ #'booster': ['gbtree','dart'],#which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
+ #'colsample_bylevel': [0.2, 1],
+ 'colsample_bytree': [0.2,1],
+ 'gamma': [0, 10, 1000],
+ #'learning_rate': [0.3, 0.9],
+ #'max_delta_step': [0, 9],
+ 'max_depth': [3, 6],
+ #'reg_alpha': [0, 6, 10],
+ #'reg_lambda': [1, 3, 7, 10],
+ 'silent': [0],#0 means printing running messages, 1 means silent mode
+ }
+randomSearchParametersXGB={
+ 'base_score': [0.2, 0.5, 0.7],
+ 'booster': ['gbtree','dart'],#which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
+ 'colsample_bylevel': [0.2, 0.5, 0.8, 1],
+ 'colsample_bytree': [0.2, 0.5, 0.8, 1],
+ 'gamma': [0, 1, 10, 100, 1000],
+ 'learning_rate': [0.1, 0.3, 0.6, 0.9],
+ 'max_delta_step': [0, 2, 6, 9],
+ 'max_depth': [2, 3, 6, 8],
+ 'reg_alpha': [0, 2, 6, 10],
+ 'reg_lambda': [1, 3, 7, 10],
+ 'silent': [0],#0 means printing running messages, 1 means silent mode
+ }
+
+myTuner = ParamsTunerWithGridAndRandomSearch(myClassifier=myXGBC, data_preparators=mDataPreparators,
+                                             grid_params=gridSearchParametersXGB, rand_params=randomSearchParametersXGB)
+myTuner.startTuning()

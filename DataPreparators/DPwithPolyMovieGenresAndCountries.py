@@ -1,4 +1,3 @@
-from sklearn.preprocessing import PolynomialFeatures
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -7,9 +6,11 @@ from sklearn.linear_model import LogisticRegression
 import xgboost as xgb
 from sklearn.preprocessing import OneHotEncoder
 from scipy.sparse import csr_matrix, hstack
+from sklearn.preprocessing import PolynomialFeatures
 
-class DPwithMovieGenresCountriesAndDirectorsWithPolynominalFeatures:
-    def __init__(self, nrows):
+
+class DPwithPolyMovieGenresAndCountries:
+    def __init__(self, nrows=None):
         self.myNrows = nrows
         self.X, self.y = self.getXy()
         # podział na zbiór treningowy i testowy
@@ -36,79 +37,66 @@ class DPwithMovieGenresCountriesAndDirectorsWithPolynominalFeatures:
         DFMovieCountries = pd.read_csv(datasetFilesPath + DFMovieCountriesFileName, header=0, delimiter="\t",
                                        encoding='iso-8859-1')
 
-        DFMovieDirectorsFileName = "movie_directors.dat"
-        DFMovieDirectors = pd.read_csv(datasetFilesPath + DFMovieDirectorsFileName, header=0, delimiter="\t",
-                                       encoding='iso-8859-1', usecols=['movieID', 'directorID'])
-
         # przygotowanie wczytanych danych
-        # ----movie genres:
+        # movie genres:
 
         DFMovieGenres['dummyColumn'] = 1
         DFMovieGenresPivoted = DFMovieGenres.pivot_table(index="movieID", columns="genre", values="dummyColumn")
-        DFMovieGenresPivoted['movieID'] = DFMovieGenresPivoted.index
-        DFUserRatedMoviesWithMovieGenres = pd.merge(DFUserRatedMovies, DFMovieGenresPivoted, on='movieID')
+        DFMovieGenresPivoted = DFMovieGenresPivoted.fillna(value=0)
 
-        # ----Countries:
+        # dodanie cech wielomianowych
+        PF = PolynomialFeatures(degree=2, interaction_only=True)
+        polyMovieGenres_npArray = PF.fit_transform(DFMovieGenresPivoted)
+        DFPolyMovieGenresPivoted = pd.DataFrame(data=polyMovieGenres_npArray, columns=PF.get_feature_names(DFMovieGenresPivoted.columns) )
+
+        DFPolyMovieGenresPivoted['movieID'] = DFMovieGenresPivoted.index
+        DFPolyMovieGenresPivoted = DFPolyMovieGenresPivoted.drop("1", 1)
+        DFUserRatedMoviesWithMovieGenres = pd.merge(DFUserRatedMovies, DFPolyMovieGenresPivoted, on='movieID')
+
+        # Countries:
         DFMovieCountries['dummyColumn'] = 1
         DFMovieCountriesPivoted = DFMovieCountries.pivot_table(index="movieID", columns="country", values="dummyColumn")
         DFMovieCountriesPivoted['movieID'] = DFMovieCountriesPivoted.index
 
         DFUserRatedMoviesWithMovieGenresAndCountries = pd.merge(DFUserRatedMoviesWithMovieGenres,
                                                                 DFMovieCountriesPivoted, on='movieID')
+        DFUserRatedMoviesWithMovieGenresAndCountries = DFUserRatedMoviesWithMovieGenresAndCountries.fillna(value=0)
 
-        # ----Directors
-        DFMovieDirectors['dummyColumn'] = 1
-        DFMovieDirectorsPivoted = DFMovieDirectors.pivot_table(index="movieID", columns="directorID",
-                                                               values="dummyColumn")
-        DFMovieDirectorsPivoted['movieID'] = DFMovieDirectorsPivoted.index
-
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors = pd.merge(DFUserRatedMoviesWithMovieGenresAndCountries,
-                                                                         DFMovieDirectorsPivoted, on='movieID')
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors.fillna(
-            value=0)
-
-        # preprocessing..
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors["rating"] = \
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors["rating"] > \
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors["rating"].mean()
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_y = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors[
-            "rating"]
-        yTemp = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_y.values
-
+        DFUserRatedMoviesWithMovieGenresAndCountries["rating"] = DFUserRatedMoviesWithMovieGenresAndCountries[
+                                                                     "rating"] > \
+                                                                 DFUserRatedMoviesWithMovieGenresAndCountries[
+                                                                     "rating"].mean()
+        DFUserRatedMoviesWithMovieGenresAndCountries_y = DFUserRatedMoviesWithMovieGenresAndCountries["rating"]
+        yTemp = DFUserRatedMoviesWithMovieGenresAndCountries_y.values
         # macierz y
         y = np.where(yTemp, 1, -1)
         # utrorzenie macierzy danych X przez usunięcie kolumny rating- czyli danych y
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors.drop(
-            "rating", 1)
+        DFUserRatedMoviesWithMovieGenresAndCountries_X = DFUserRatedMoviesWithMovieGenresAndCountries.drop("rating", 1)
 
-        XUserID = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X["userID"].values
-        XMovieID = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X["movieID"].values
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X.drop(
-            "userID", 1)
-        DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X = DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X.drop(
-            "movieID", 1)
+        XUserID = DFUserRatedMoviesWithMovieGenresAndCountries_X["userID"].values
+        XMovieID = DFUserRatedMoviesWithMovieGenresAndCountries_X["movieID"].values
+        DFUserRatedMoviesWithMovieGenresAndCountries_X = DFUserRatedMoviesWithMovieGenresAndCountries_X.drop("userID",
+                                                                                                             1)
+        DFUserRatedMoviesWithMovieGenresAndCountries_X = DFUserRatedMoviesWithMovieGenresAndCountries_X.drop("movieID",
+                                                                                                             1)
 
-        XMovieGenresCountriesAndDirectors = csr_matrix(DFUserRatedMoviesWithMovieGenresCountriesAndDirectors_X.values)
+        XMovieGenresAndCountries = csr_matrix(DFUserRatedMoviesWithMovieGenresAndCountries_X.values)
 
         OHE = OneHotEncoder()
         XUserIDOHEncoded = OHE.fit_transform(XUserID.reshape(-1, 1))
         XMovieIDOHEncoded = OHE.fit_transform(XMovieID.reshape(-1, 1))
         # macierz X
-        X = hstack([XUserIDOHEncoded, XMovieIDOHEncoded, XMovieGenresCountriesAndDirectors])
-
-        # dodanie cech wielomianowych
-        PF = PolynomialFeatures(degree=2, interaction_only=True)
-        polyX = PF.fit_transform(X=X.toarray(), y=y)
-        sparsePolyX = csr_matrix(polyX)
-        return sparsePolyX, y
+        X = hstack([XUserIDOHEncoded, XMovieIDOHEncoded, XMovieGenresAndCountries])
+        return X, y
 
 """
 #podział na zbiór treningowy i testowy
-X_train,X_test,y_train,y_test=train_test_split(sparsePolyX,y,test_size=0.2)
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2)
+
 
 def xgbClassification(X_train, X_test, y_train, y_test):
-    #xgTrain = xgb.DMatrix(X_train, label=y_train)
-    #xgTest = xgb.DMatrix(X_test, label=y_test)
+    xgTrain = xgb.DMatrix(X_train, label=y_train)
+    xgTest = xgb.DMatrix(X_test, label=y_test)
 
     #num_rounds = 10
 

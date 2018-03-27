@@ -2,11 +2,11 @@
 
 
 class DPForWhiteBoxMetodaSzwabe:
-    def __init__(self, optimalBlackBoxClassifier, currentBlackBoxAlgorithm, normalDP, nrows=None):
+    def __init__(self, optimalBlackBoxClassifier, currentBlackBoxAlgorithm, normalDP):
         self.optimalBlackBoxClassifier = optimalBlackBoxClassifier
         self.currentBlackBoxAlgorithm = currentBlackBoxAlgorithm
         self.normalDP = normalDP
-        self.myNrows = nrows
+        self.myNrows = normalDP.myNrows
         self.X_train, self.X_test, self.y_train, self.y_test = self.getX_train_X_test_y_train_y_test()
 
     #Zbiór treningowy do trenowania modelu whitebox

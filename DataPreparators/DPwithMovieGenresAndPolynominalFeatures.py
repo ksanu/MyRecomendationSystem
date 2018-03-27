@@ -37,8 +37,17 @@ class DPwithMovieGenresAndPolynominalFeatures:
         # movie genres:
         DFMovieGenres['dummyColumn'] = 1
         DFMovieGenresPivoted = DFMovieGenres.pivot_table(index="movieID", columns="genre", values="dummyColumn")
-        DFMovieGenresPivoted['movieID'] = DFMovieGenresPivoted.index
-        DFUserRatedMoviesWithMovieGenres = pd.merge(DFUserRatedMovies, DFMovieGenresPivoted, on='movieID')
+        DFMovieGenresPivoted = DFMovieGenresPivoted.fillna(value=0)
+
+        # dodanie cech wielomianowych
+        PF = PolynomialFeatures(degree=2, interaction_only=True)
+        polyMovieGenres_npArray = PF.fit_transform(DFMovieGenresPivoted)
+        DFPolyMovieGenresPivoted = pd.DataFrame(data=polyMovieGenres_npArray,
+                                                columns=PF.get_feature_names(DFMovieGenresPivoted.columns))
+
+        DFPolyMovieGenresPivoted['movieID'] = DFMovieGenresPivoted.index
+        DFPolyMovieGenresPivoted = DFPolyMovieGenresPivoted.drop("1", 1)
+        DFUserRatedMoviesWithMovieGenres = pd.merge(DFUserRatedMovies, DFPolyMovieGenresPivoted, on='movieID')
         DFUserRatedMoviesWithMovieGenres = DFUserRatedMoviesWithMovieGenres.fillna(value=0)
 
         DFUserRatedMoviesWithMovieGenres["rating"] = DFUserRatedMoviesWithMovieGenres["rating"] > \
@@ -55,17 +64,16 @@ class DPwithMovieGenresAndPolynominalFeatures:
         DFUserRatedMoviesWithMovieGenres_X = DFUserRatedMoviesWithMovieGenres_X.drop("movieID", 1)
 
         XMovieGenres = csr_matrix(DFUserRatedMoviesWithMovieGenres_X.values)
+
+
         OHE = OneHotEncoder()
         XUserIDOHEncoded = OHE.fit_transform(XUserID.reshape(-1, 1))
         XMovieIDOHEncoded = OHE.fit_transform(XMovieID.reshape(-1, 1))
         # macierz X
         X = hstack([XUserIDOHEncoded, XMovieIDOHEncoded, XMovieGenres])
 
-        # dodanie cech wielomianowych
-        PF = PolynomialFeatures(degree=2, interaction_only=True)
-        polyX = PF.fit_transform(X=X.toarray(), y=y)
-        sparsePolyX = csr_matrix(polyX)
-        return sparsePolyX, y
+
+        return X, y
 
 """
 #podział na zbiór treningowy i testowy

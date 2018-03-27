@@ -32,7 +32,7 @@ loaded_model = pickle.load(open(filename, 'rb'))
 optimalBlackBoxClassifierXGBC = loaded_model
 currentBlackBoxAlgorithm = "GB"
 DP_white_box = DPForWhiteBoxMetodaSzwabe(optimalBlackBoxClassifier=optimalBlackBoxClassifierXGBC,
-										 currentBlackBoxAlgorithm=currentBlackBoxAlgorithm, normalDP=DP, nrows=nrows)
+										 currentBlackBoxAlgorithm=currentBlackBoxAlgorithm, normalDP=DP)
 
 WhiteBoxClassifier = DecisionTreeClassifier()
 myTunerForWhiteBox = ParamsTunerWithGridAndRandomSearch(myClassifier=WhiteBoxClassifier,

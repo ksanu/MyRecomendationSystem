@@ -1,6 +1,6 @@
 from sklearn.tree import DecisionTreeClassifier
 from DataPreparators.DPwithMovieGenresCountriesAndDirectors import DPwithMovieGenresCountriesAndDirectors
-from DataPreparators.DPForWhiteBox import DPForWhiteBox
+from DataPreparators.DPForWhiteBoxMetodaPedagogiczna import DPForWhiteBoxMetodaPedagogiczna
 from sklearn.model_selection import train_test_split
 import pickle
 from ParamsTunerWithGridAndRandomSearch import ParamsTunerWithGridAndRandomSearch
@@ -35,12 +35,12 @@ randomSearchCVParameters={
 	'max_leaf_nodes': [16, 20, 26, 34, 45, 58, 76, 98, 127],
 	'min_samples_split': [0.0001, 0.000237, 0.000562, 0.00133, 0.00316, 0.007498, 0.0177, 0.0421, 0.1]}
 
-DP_white_box = DPForWhiteBox(optimalBlackBoxClassifier, X_train, y_train)
+DP_white_box = DPForWhiteBoxMetodaPedagogiczna(optimalBlackBoxClassifier, X_train, y_train, X_test, y_test)
 
 WhiteBoxClassifier = DecisionTreeClassifier()
 myTunerForWhiteBox = ParamsTunerWithGridAndRandomSearch(myClassifier=WhiteBoxClassifier,
 	data_preparators=[DP_white_box], grid_params=gridSearchCVParameters, rand_params=randomSearchCVParameters, info="WhiteBoxs\\WhiteBox")
 
-WhiteBoxClassifier = myTunerForWhiteBox.startTuning()
+WhiteBoxClassifier, _ = myTunerForWhiteBox.startTuning()
 print("whiteBox tuning result:\n params: " + str(myTunerForWhiteBox.best_params) + "\nroc_auc score: " + str(myTunerForWhiteBox.best_score))
 #tree.export_graphviz(WhiteBoxClassifier, out_file='whiteBoxClassifier_tree.dot')

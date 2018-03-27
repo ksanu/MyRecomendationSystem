@@ -1,12 +1,20 @@
 import numpy as np
 
-class DPForWhiteBox:
-    def __init__(self, optimalBlackBoxClassifier, X_train, y_train):
+class DPForWhiteBoxMetodaPedagogiczna:
+    def __init__(self, optimalBlackBoxClassifier, X_train, y_train, X_test, y_test, nrows=None):
         self.optimalBlackBoxClassifier = optimalBlackBoxClassifier
         self.X_train = X_train
         self.y_train = y_train
+        self.X_test = X_test
+        self.y_test = y_test
+        self.myNrows = nrows
 
-    def getXy(self):
+    #dane treningowe do trenowanie modelu whitebox
+    def getX_test_y_test(self):
+        return self.X_test, self.y_test
+
+    #dane treningowe do trenowanie modelu whitebox
+    def getX_train_y_train(self):
         probabilities = self.optimalBlackBoxClassifier.predict_proba(self.X_train)[:, 0]
         #liczba próbek „pozytywnych” w nowym zbiorze etykiet  y_trainPrim  ma być równa
         #liczbie próbek „negatywnych” w oryginalnym zbiorze y_train

@@ -11,11 +11,12 @@ class ParamsTunerWithGridAndRandomSearch:
         self.best_score = 0
         self.best_params = 0
         self.info = info
+        self.DPforBestModel = None
 
     def startTuning(self):
         for DP in self.data_preparators:
             #uzyskanie danych treningowych
-            X_train, y_train = DP.getXy()
+            X_train, y_train = DP.getX_train_y_train()
             # uczenie modelu klasyfikatora metodą GridSearch:
             GSAuROCOptimalC = GridSearchCV(self.myClassifier, self.grid_params, scoring='roc_auc')
             GSAuROCOptimalC.fit(X=X_train, y=y_train)
@@ -31,15 +32,17 @@ class ParamsTunerWithGridAndRandomSearch:
                                                    n_iter=numberOfGridSearchPoints)
             RSAuROCOptimalC.fit(X=X_train, y=y_train)
 
+            #zapisanie lepszego wyniku
             if GSAuROCOptimalC.best_score_ > RSAuROCOptimalC.best_score_:
                 bestClassifierModel = GSAuROCOptimalC.best_estimator_
                 bestParams = GSAuROCOptimalC.best_params_
                 score = GSAuROCOptimalC.best_score_
-                self.saveResult(bestClassifierModel=bestClassifierModel, bestParams=bestParams, score=score, DP=DP, info=self.info)
+                self.saveResult(bestClassifierModel=bestClassifierModel, bestParams=bestParams, score=score, data_preparator=DP, info=self.info)
                 if GSAuROCOptimalC.best_score_>self.best_score:
                     self.best_trained_model = GSAuROCOptimalC.best_estimator_
                     self.best_score = GSAuROCOptimalC.best_score_
                     self.best_params = GSAuROCOptimalC.best_params_
+                    self.DPforBestModel = DP
             else:
                 bestClassifierModel = RSAuROCOptimalC.best_estimator_
                 bestParams = RSAuROCOptimalC.best_params_
@@ -49,8 +52,9 @@ class ParamsTunerWithGridAndRandomSearch:
                     self.best_trained_model = RSAuROCOptimalC.best_estimator_
                     self.best_score = RSAuROCOptimalC.best_score_
                     self.best_params = RSAuROCOptimalC.best_params_
+                    self.DPforBestModel = DP
 
-        return self.best_trained_model
+        return self.best_trained_model, self.DPforBestModel
 
     def saveResult(self,bestClassifierModel, bestParams, score, data_preparator, info):
         filename = ".\\TrainedModels\\" + info +str(data_preparator.myNrows)+ type(bestClassifierModel).__name__ + "_bestmodel_" + type(data_preparator).__name__
@@ -58,6 +62,7 @@ class ParamsTunerWithGridAndRandomSearch:
         pickle.dump(bestClassifierModel, open(file=filename, mode='wb'))
         #zapisywanie parametrów i wyniku
         mfile = open(file=filename+"_bestparams", mode="w")
-        mfile.write(str(bestParams) + "\n" + "score: " + str(score))
+        mfile.write("params: " + str(bestParams) + "\n" + "score: " + str(score) +
+                    "\nnrows: "+ str(data_preparator.myNrows))
         mfile.flush()
         mfile.close()

@@ -11,6 +11,15 @@ from scipy.sparse import csr_matrix, hstack
 class DPwithMovieGenresAndCountries:
     def __init__(self, nrows):
         self.myNrows = nrows
+        self.X, self.y = self.getXy()
+        # podział na zbiór treningowy i testowy
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2)
+
+    def getX_train_y_train(self):
+        return self.X_train, self.y_train
+
+    def getX_test_y_test(self):
+        return self.X_test, self.y_test
 
     def getXy(self):
         datasetFilesPath = "C:\\hetrec2011-movielens-2k-v2\\"

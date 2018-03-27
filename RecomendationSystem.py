@@ -5,10 +5,9 @@ from DataPreparators.DPwithMovieGenresCountriesAndDirectors import DPwithMovieGe
 import xgboost as xgb
 from ParamsTunerWithGridAndRandomSearch import ParamsTunerWithGridAndRandomSearch
 import xgboost as xgb
+import TestAndSaveTrainedEstimator
 
-
-
-mNrows = 10000
+mNrows = 100
 DP1 = DPwithMovieGenres(nrows=mNrows)
 DP2 = DPwithMovieGenresAndCountries(nrows=mNrows)
 DP3 = DPwithMovieGenresCountriesAndDirectors(nrows=mNrows)
@@ -34,7 +33,7 @@ randomSearchParametersLRC={
 
 #myTuner = ParamsTunerWithGridAndRandomSearch(myClassifier=myLRC, data_preparators=mDataPreparators,
 #                                             grid_params=gridSearchParametersLRC, rand_params=randomSearchParametersLRC)
-#myTuner.startTuning()
+#BestFoundLRC, DPforBestFoundLRC = myTuner.startTuning()
 
 myXGBC = xgb.XGBClassifier()
 gridSearchParametersXGB={
@@ -42,9 +41,9 @@ gridSearchParametersXGB={
  #'booster': ['gbtree','dart'],#which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
  #'colsample_bylevel': [0.2, 1],
  'colsample_bytree': [0.2,1],
- 'gamma': [0, 10, 1000],
+ 'gamma': [0,0.01, 10],
  #'learning_rate': [0.3, 0.9],
- #'max_delta_step': [0, 9],
+ 'max_delta_step': [0, 9],
  'max_depth': [3, 6],
  #'reg_alpha': [0, 6, 10],
  #'reg_lambda': [1, 3, 7, 10],
@@ -55,15 +54,19 @@ randomSearchParametersXGB={
  'booster': ['gbtree','dart'],#which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
  'colsample_bylevel': [0.2, 0.5, 0.8, 1],
  'colsample_bytree': [0.2, 0.5, 0.8, 1],
- 'gamma': [0, 1, 10, 100, 1000],
+ 'gamma': [0,0.001, 0.001, 0.01, 1, 10, 100, 1000],
  'learning_rate': [0.1, 0.3, 0.6, 0.9],
  'max_delta_step': [0, 2, 6, 9],
- 'max_depth': [2, 3, 6, 8],
+ 'max_depth': [2, 3, 6, 8, 16],
  'reg_alpha': [0, 2, 6, 10],
  'reg_lambda': [1, 3, 7, 10],
+ 'min_child_weight': [1, 4, 8, 10, 20, 100],
+ #'subsample ': [0.001, 0.01, 0.1, 1],
  'silent': [0],#0 means printing running messages, 1 means silent mode
  }
 
 myTuner = ParamsTunerWithGridAndRandomSearch(myClassifier=myXGBC, data_preparators=mDataPreparators,
                                              grid_params=gridSearchParametersXGB, rand_params=randomSearchParametersXGB)
-myTuner.startTuning()
+BestFoundXGBC, DPforBestFoundXGBC = myTuner.startTuning()
+
+TestAndSaveTrainedEstimator.TestAndSaveTrainedEstimator(BestFoundXGBC, DPforBestFoundXGBC)

@@ -11,8 +11,8 @@ from DataPreparators.DPForWhiteBoxMetodaSzwabe import DPForWhiteBoxMetodaSzwabe
 from DataPreparators.DPForWhiteBoxMetodaPedagogiczna import DPForWhiteBoxMetodaPedagogiczna
 from sklearn.tree import DecisionTreeClassifier
 
-testname = "test1"
-mNrows = 100
+testname = "test2"
+mNrows = 1000
 DP1 = DPwithMovieGenres(nrows=mNrows)
 DP2 = DPwithMovieGenresAndCountries(nrows=mNrows)
 DP3 = DPwithMovieGenresCountriesAndDirectors(nrows=mNrows)
@@ -107,10 +107,10 @@ randomSearchCVParametersDTC={
 WhiteBoxClassifier = DecisionTreeClassifier()
 myTunerForWhiteBox = ParamsTunerWithGridAndRandomSearch(myClassifier=WhiteBoxClassifier,
 	data_preparators=WBDataPreps, grid_params=gridSearchCVParametersDTC, rand_params=randomSearchCVParametersDTC,
-														info="WhiteBoxs\\WhiteBox" + testname)
+														info="WhiteBoxs\\WhiteBox_XGBC_" + testname)
 BestFoundWhiteBoxClassifier, DPforBestFoundWBC = myTunerForWhiteBox.startTuning()
 #Testowanie białej skrzynki
-TestAndSaveTrainedEstimator.TestAndSaveTrainedEstimator(BestFoundWhiteBoxClassifier, DPforBestFoundWBC, type(DPforBestFoundWBC.normalDP).__name__)
+TestAndSaveTrainedEstimator.TestAndSaveTrainedEstimator(BestFoundWhiteBoxClassifier, DPforBestFoundWBC, info="WB")
 
 #użycie BestFoundLRC jako black box. Użycie metody pedagogicznej, bo metoda Szwabe wymaga GradientBoostingClassifier
 #lub RandomForestClassifier
@@ -119,8 +119,8 @@ DP_white_box_metodaPedagogiczna = DPForWhiteBoxMetodaPedagogiczna(optimalBlackBo
 WhiteBoxClassifier = DecisionTreeClassifier()
 myTunerForWhiteBox = ParamsTunerWithGridAndRandomSearch(myClassifier=WhiteBoxClassifier,
 	data_preparators=[DP_white_box_metodaPedagogiczna], grid_params=gridSearchCVParametersDTC, rand_params=randomSearchCVParametersDTC,
-														info="WhiteBoxs\\WhiteBox" + testname)
+														info="WhiteBoxs\\WhiteBox_LRC_" + testname)
 BestFoundWhiteBoxClassifier, DPforBestFoundWBC = myTunerForWhiteBox.startTuning()
 #Testowanie białej skrzynki
-TestAndSaveTrainedEstimator.TestAndSaveTrainedEstimator(BestFoundWhiteBoxClassifier, DPforBestFoundWBC, type(DPforBestFoundWBC.normalDP).__name__)
+TestAndSaveTrainedEstimator.TestAndSaveTrainedEstimator(BestFoundWhiteBoxClassifier, DPforBestFoundWBC, info="WB")
 
